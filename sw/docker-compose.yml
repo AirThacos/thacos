@@ -1,0 +1,70 @@
+version: '3'
+services:
+    esphome:
+        image: esphome/esphome:latest
+        container_name: esphome
+        env_file:
+            - .env
+        volumes:
+            - ${ROOT}/esphome/config:/config
+            - /etc/localtime:/etc/localtime:ro
+        privileged: true
+        network_mode: host
+        restart: unless-stopped
+
+    home-assistant:
+        image: 'ghcr.io/home-assistant/home-assistant:stable'
+        container_name: home-assistant
+        env_file:
+            - .env
+        volumes:
+            - ${ROOT}/home-assistant/config:/config
+            - /etc/localtime:/etc/localtime:ro
+        network_mode: host
+        depends_on:
+            - influxdb
+        restart: unless-stopped
+
+    mosquitto:
+        image: eclipse-mosquitto:2
+        container_name: mosquitto
+        volumes:
+            - ${ROOT}/mosquitto/config:/mosquitto/config
+            - ${ROOT}/mosquitto/data:/mosquitto/data
+            - ${ROOT}/mosquitto/logs:/mosquitto/log
+        ports:
+            - '${MQTT_PORT}:1883'
+        user: '1883:1883'
+        restart: unless-stopped
+
+    grafana:
+        image: grafana/grafana-oss:9.4.7
+        container_name: grafana
+        env_file:
+            - .env
+        environment:
+            - GF_SERVER_ROOT_URL=${GRAFANA_URL}
+            - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
+        ports:
+            - '${GRAFANA_PORT}:3000'
+        volumes:
+            - ${ROOT}/grafana/data:/var/lib/grafana
+        restart: unless-stopped
+
+    influxdb:
+        image: influxdb:2.6
+        container_name: influxdb
+        env_file:
+            - .env
+        environment:
+            - DOCKER_INFLUXDB_INIT_MODE=${INFLUXDB_INIT_MODE:-}
+            - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_ADMIN_USER}
+            - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_ADMIN_PASS}
+            - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_ADMIN_TOKEN}
+            - DOCKER_INFLUXDB_INIT_ORG=${INFLUXDB_ORG}
+            - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_BUCKET}
+        ports:
+            - '${INFLUXDB_PORT}:8086'
+        volumes:
+            - ${ROOT}/influxdb/data:/var/lib/influxdb
+        restart: unless-stopped

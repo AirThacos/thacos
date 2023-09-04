@@ -1,0 +1,30 @@
+default_config:
+
+homeassistant:
+    external_url: !env_var HOMEASSISTANT_URL
+
+http:
+    server_port: !env_var HOMEASSISTANT_PORT
+    use_x_forwarded_for: true
+    trusted_proxies: 127.0.0.0/24
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+frontend:
+    themes: !include_dir_merge_named themes
+
+influxdb:
+    api_version: 2
+    host: localhost
+    port: !env_var INFLUXDB_PORT
+    ssl: false
+    token: !env_var INFLUXDB_ADMIN_TOKEN
+    organization: !env_var INFLUXDB_ORG_ID
+    bucket: !env_var INFLUXDB_BUCKET
+    tags:
+        source: HA
+    tags_attributes:
+        - friendly_name
+    default_measurement: units
